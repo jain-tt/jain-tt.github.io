@@ -1,0 +1,29 @@
+{{- if .Values.networkPolicy.enabled }}
+# [START networkpolicy]
+# Ingress: only the gateway (MCP traffic) and Prometheus (metrics).
+# Egress: DNS, the Kubernetes API, Mimir, OpenCost and the IdP JWKS endpoint. Nothing else
+# (limits SSRF / data exfiltration if a tool were ever abused).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: {{ .Release.Name }}
+  labels: {{- include "atlas-mcp.labels" . | nindent 4 }}
+spec:
+  podSelector:
+    matchLabels: {{- include "atlas-mcp.selector" . | nindent 6 }}
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: {{ .Values.networkPolicy.gatewayNamespace }}}}
+      ports: [{port: 8000, protocol: TCP}]
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: observability}}
+      ports: [{port: 8000, protocol: TCP}]
+  egress:
+    - to: [{namespaceSelector: {}, podSelector: {matchLabels: {k8s-app: kube-dns}}}]
+      ports: [{port: 53, protocol: UDP}, {port: 53, protocol: TCP}]
+    - to: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: observability}}}]
+    - to: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: opencost}}}]
+    - ports: [{port: 443, protocol: TCP}, {port: 6443, protocol: TCP}]   # API server + IdP JWKS (tighten with CIDRs/FQDN policy)
+# [END networkpolicy]
+{{- end }}

@@ -1,0 +1,26 @@
+# [START values]
+image:
+  repository: vllm/vllm-openai            # official vLLM OpenAI-compatible server image
+  tag: v0.31.0                            # pin; verify the tag exists for your target version
+model:
+  id: Qwen/Qwen3-1.7B                     # pin a revision in production
+  revision: main
+  servedName: atlas-chat
+  maxModelLen: 8192
+  gpuMemoryUtilization: "0.90"
+  maxNumSeqs: 128
+  hfTokenSecret: hf-token                 # Secret with key HF_TOKEN (gated models only)
+gpu:
+  count: 1                                # nvidia.com/gpu: whole GPUs; requests must equal limits
+  nodeSelector: {nvidia.com/gpu.product: NVIDIA-L4}   # label from GPU Feature Discovery; adjust
+modelCache:
+  size: 50Gi
+  storageClass: gp3
+replicas:
+  min: 1
+  max: 4
+keda:
+  enabled: true
+  prometheusUrl: http://prometheus-operated.monitoring:9090
+  waitingThreshold: "5"                   # scale out when > 5 requests wait per replica
+# [END values]

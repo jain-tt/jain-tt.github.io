@@ -1,0 +1,297 @@
+# GENERATED from deploy/helm/atlas-mcp with: helm template atlas-mcp deploy/helm/atlas-mcp -n atlas-mcp
+# Requires: Gateway API CRDs + a Gateway named public-gateway, Prometheus Operator CRDs (ServiceMonitor).
+---
+# Source: atlas-mcp/templates/networkpolicy.yaml
+# [START networkpolicy]
+# Ingress: only the gateway (MCP traffic) and Prometheus (metrics).
+# Egress: DNS, the Kubernetes API, Mimir, OpenCost and the IdP JWKS endpoint. Nothing else
+# (limits SSRF / data exfiltration if a tool were ever abused).
+apiVersion: networking.k8s.io/v1
+kind: NetworkPolicy
+metadata:
+  name: atlas-mcp
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+spec:
+  podSelector:
+    matchLabels:
+      app.kubernetes.io/name: atlas-mcp
+      app.kubernetes.io/instance: atlas-mcp
+  policyTypes: [Ingress, Egress]
+  ingress:
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: gateway-system}}
+      ports: [{port: 8000, protocol: TCP}]
+    - from:
+        - namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: observability}}
+      ports: [{port: 8000, protocol: TCP}]
+  egress:
+    - to: [{namespaceSelector: {}, podSelector: {matchLabels: {k8s-app: kube-dns}}}]
+      ports: [{port: 53, protocol: UDP}, {port: 53, protocol: TCP}]
+    - to: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: observability}}}]
+    - to: [{namespaceSelector: {matchLabels: {kubernetes.io/metadata.name: opencost}}}]
+    - ports: [{port: 443, protocol: TCP}, {port: 6443, protocol: TCP}]   # API server + IdP JWKS (tighten with CIDRs/FQDN policy)
+# [END networkpolicy]
+---
+# Source: atlas-mcp/templates/pdb.yaml
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: atlas-mcp
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+spec:
+  minAvailable: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: atlas-mcp
+      app.kubernetes.io/instance: atlas-mcp
+---
+# Source: atlas-mcp/templates/serviceaccount.yaml
+# Identity of the MCP server pods. RBAC below grants READ-ONLY access to pods only.
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: atlas-mcp
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+automountServiceAccountToken: true
+---
+# Source: atlas-mcp/templates/configmap.yaml
+# Non-secret configuration. Secrets (if any) come from a Secret / External Secrets, never from here.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: atlas-mcp-config
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+data:
+  ATLAS_TRANSPORT: http
+  ATLAS_HOST: "0.0.0.0"
+  ATLAS_PORT: "8000"
+  ATLAS_BACKEND: "live"
+  ATLAS_BACKEND_TIMEOUT_S: "8"
+  PROM_URL: "http://mimir-query-frontend.observability:8080/prometheus"
+  PROM_TENANT: ""
+  OPENCOST_URL: "http://opencost.opencost:9003"
+  ATLAS_PUBLIC_URL: "https://mcp.example.com/mcp"
+  ATLAS_AUTH: jwt
+  ATLAS_OAUTH_ISSUER: "https://login.example.com/realms/atlas"
+  ATLAS_OAUTH_JWKS_URL: "https://login.example.com/realms/atlas/protocol/openid-connect/certs"
+  LOG_LEVEL: INFO
+---
+# Source: atlas-mcp/templates/serviceaccount.yaml
+# [START rbac]
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: atlas-mcp-read-pods
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+rules:
+  - apiGroups: [""]
+    resources: ["pods"]
+    verbs: ["get", "list"]          # no watch, no exec, no logs, no secrets, no writes
+---
+# Source: atlas-mcp/templates/serviceaccount.yaml
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  name: atlas-mcp-read-pods
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+roleRef: {apiGroup: rbac.authorization.k8s.io, kind: ClusterRole, name: atlas-mcp-read-pods}
+subjects:
+  - {kind: ServiceAccount, name: atlas-mcp, namespace: atlas-mcp}
+# [END rbac]
+---
+# Source: atlas-mcp/templates/service.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: atlas-mcp
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+spec:
+  type: ClusterIP
+  selector:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+  ports:
+    - {name: http, port: 80, targetPort: http}
+---
+# Source: atlas-mcp/templates/deployment.yaml
+# [START deployment]
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: atlas-mcp
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+spec:
+  revisionHistoryLimit: 5
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}     # never reduce serving capacity during a rollout
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: atlas-mcp
+      app.kubernetes.io/instance: atlas-mcp
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: atlas-mcp
+        app.kubernetes.io/instance: atlas-mcp
+        app.kubernetes.io/version: "0.1.0"
+        app.kubernetes.io/component: mcp-server
+      annotations:
+        checksum/config: 22dc6d04b9897fe1b66145cf85d4e6832af2608f44bb68dbd777223c0ead94bb  # restart on config change
+    spec:
+      serviceAccountName: atlas-mcp
+      terminationGracePeriodSeconds: 30                  # > uvicorn graceful timeout (25 s)
+      securityContext:
+        runAsNonRoot: true
+        runAsUser: 10001
+        runAsGroup: 10001
+        fsGroup: 10001
+        seccompProfile: {type: RuntimeDefault}
+      topologySpreadConstraints:
+        - maxSkew: 1
+          topologyKey: topology.kubernetes.io/zone
+          whenUnsatisfiable: ScheduleAnyway
+          labelSelector:
+            matchLabels:
+              app.kubernetes.io/name: atlas-mcp
+              app.kubernetes.io/instance: atlas-mcp
+      containers:
+        - name: mcp
+          image: ghcr.io/example/atlas-mcp:0.1.0
+          imagePullPolicy: IfNotPresent
+          args: ["--transport", "http"]
+          envFrom:
+            - configMapRef: {name: atlas-mcp-config}
+          ports:
+            - {name: http, containerPort: 8000, protocol: TCP}
+          startupProbe:
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 2
+            failureThreshold: 30
+          livenessProbe:                                 # process alive only — never depends on backends
+            httpGet: {path: /healthz, port: http}
+            periodSeconds: 10
+            failureThreshold: 3
+          readinessProbe:                                # backends reachable -> receive traffic
+            httpGet: {path: /readyz, port: http}
+            periodSeconds: 10
+            timeoutSeconds: 3
+            failureThreshold: 3
+          lifecycle:
+            preStop:
+              sleep: {seconds: 5}                        # let endpoints update before SIGTERM
+          resources:
+            limits:
+              memory: 384Mi
+            requests:
+              cpu: 100m
+              memory: 192Mi
+          securityContext:
+            allowPrivilegeEscalation: false
+            readOnlyRootFilesystem: true
+            capabilities: {drop: ["ALL"]}
+          volumeMounts:
+            - {name: tmp, mountPath: /tmp}
+      volumes:
+        - {name: tmp, emptyDir: {}}
+# [END deployment]
+---
+# Source: atlas-mcp/templates/hpa.yaml
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: atlas-mcp
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+spec:
+  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: atlas-mcp}
+  minReplicas: 2
+  maxReplicas: 10
+  metrics:
+    - type: Resource
+      resource:
+        name: cpu
+        target: {type: Utilization, averageUtilization: 70}
+---
+# Source: atlas-mcp/templates/httproute.yaml
+# [START httproute]
+# TLS is terminated by the shared Gateway (cert-manager certificate for the hostname).
+# Only /mcp and the OAuth Protected Resource Metadata path are exposed publicly;
+# /metrics and /readyz stay cluster-internal.
+apiVersion: gateway.networking.k8s.io/v1
+kind: HTTPRoute
+metadata:
+  name: atlas-mcp
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+spec:
+  parentRefs:
+    - name: public-gateway
+      namespace: gateway-system
+      sectionName: https
+  hostnames: ["mcp.example.com"]
+  rules:
+    - matches:
+        - path: {type: PathPrefix, value: /mcp}
+        - path: {type: PathPrefix, value: /.well-known/oauth-protected-resource}
+      backendRefs:
+        - {name: atlas-mcp, port: 80}
+      timeouts:
+        request: 60s                                    # longer than the slowest tool (8 s backend timeout x2)
+# [END httproute]
+---
+# Source: atlas-mcp/templates/servicemonitor.yaml
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: atlas-mcp
+  labels:
+    app.kubernetes.io/name: atlas-mcp
+    app.kubernetes.io/instance: atlas-mcp
+    app.kubernetes.io/version: "0.1.0"
+    app.kubernetes.io/component: mcp-server
+spec:
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: atlas-mcp
+      app.kubernetes.io/instance: atlas-mcp
+  endpoints:
+    - {port: http, path: /metrics, interval: 30s}

@@ -1,0 +1,22 @@
+# Non-secret configuration. Secrets (if any) come from a Secret / External Secrets, never from here.
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ .Release.Name }}-config
+  labels: {{- include "atlas-mcp.labels" . | nindent 4 }}
+data:
+  ATLAS_TRANSPORT: http
+  ATLAS_HOST: "0.0.0.0"
+  ATLAS_PORT: "8000"
+  ATLAS_BACKEND: {{ .Values.backend.mode | quote }}
+  ATLAS_BACKEND_TIMEOUT_S: {{ .Values.backend.timeoutSeconds | quote }}
+  PROM_URL: {{ .Values.backend.promUrl | quote }}
+  PROM_TENANT: {{ .Values.backend.promTenant | quote }}
+  OPENCOST_URL: {{ .Values.backend.opencostUrl | quote }}
+  ATLAS_PUBLIC_URL: {{ .Values.publicUrl | quote }}
+  {{- if .Values.oauth.enabled }}
+  ATLAS_AUTH: jwt
+  ATLAS_OAUTH_ISSUER: {{ .Values.oauth.issuer | quote }}
+  ATLAS_OAUTH_JWKS_URL: {{ .Values.oauth.jwksUrl | quote }}
+  {{- end }}
+  LOG_LEVEL: INFO

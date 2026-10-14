@@ -1,0 +1,25 @@
+{
+  "name": "atlas-mcp-ts",
+  "version": "0.1.0",
+  "description": "Atlas Ops read-only MCP server in TypeScript (course lab 09)",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "start:stdio": "node dist/stdio.js",
+    "start:http": "node dist/http.js",
+    "test": "tsc -p tsconfig.json && node --test test/server.test.mjs"
+  },
+  "dependencies": {
+    "@modelcontextprotocol/node": "^2.1.1",
+    "@modelcontextprotocol/server": "^2.3.1",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "@modelcontextprotocol/client": "^2.3.1",
+    "@types/node": "^26.6.5",
+    "typescript": "^7.0.2"
+  }
+}

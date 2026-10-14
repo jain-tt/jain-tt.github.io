@@ -1,0 +1,63 @@
+# [START deployment]
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ .Release.Name }}
+  labels: {app: {{ .Release.Name }}}
+spec:
+  replicas: {{ .Values.replicas.min }}
+  strategy:
+    type: RollingUpdate
+    rollingUpdate: {maxUnavailable: 0, maxSurge: 1}    # a GPU replica takes minutes to load: never drop capacity first
+  selector: {matchLabels: {app: {{ .Release.Name }}}}
+  template:
+    metadata:
+      labels: {app: {{ .Release.Name }}}
+    spec:
+      nodeSelector: {{- toYaml .Values.gpu.nodeSelector | nindent 8 }}
+      tolerations:
+        - {key: nvidia.com/gpu, operator: Exists, effect: NoSchedule}   # GPU nodes are usually tainted
+      terminationGracePeriodSeconds: 120                 # let in-flight streams finish
+      containers:
+        - name: vllm
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          args:
+            - --model={{ .Values.model.id }}
+            - --revision={{ .Values.model.revision }}
+            - --served-model-name={{ .Values.model.servedName }}
+            - --max-model-len={{ .Values.model.maxModelLen }}
+            - --gpu-memory-utilization={{ .Values.model.gpuMemoryUtilization }}
+            - --max-num-seqs={{ .Values.model.maxNumSeqs }}
+            - --port=8000
+          env:
+            - name: HF_HOME
+              value: /models
+            - name: HF_TOKEN
+              valueFrom: {secretKeyRef: {name: {{ .Values.model.hfTokenSecret }}, key: HF_TOKEN, optional: true}}
+          ports: [{name: http, containerPort: 8000}]
+          resources:
+            requests: {cpu: "4", memory: 24Gi, nvidia.com/gpu: {{ .Values.gpu.count }}}
+            limits: {memory: 24Gi, nvidia.com/gpu: {{ .Values.gpu.count }}}
+          startupProbe:                                  # model download + load + CUDA graph capture: up to 20 min
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+            failureThreshold: 120
+          readinessProbe:
+            httpGet: {path: /health, port: http}
+            periodSeconds: 10
+          livenessProbe:                                 # only after startup succeeded; generous so busy GPUs are not killed
+            httpGet: {path: /health, port: http}
+            periodSeconds: 30
+            timeoutSeconds: 10
+            failureThreshold: 5
+          lifecycle:
+            preStop: {sleep: {seconds: 15}}             # drop from endpoints before SIGTERM
+          volumeMounts:
+            - {name: models, mountPath: /models}
+            - {name: dshm, mountPath: /dev/shm}          # PyTorch/NCCL need more shared memory than the 64 MiB default
+      volumes:
+        - name: models
+          persistentVolumeClaim: {claimName: {{ .Release.Name }}-models}
+        - name: dshm
+          emptyDir: {medium: Memory, sizeLimit: 8Gi}
+# [END deployment]

@@ -1,0 +1,12 @@
+import { launch } from '/Users/vaibhav.jain/tajawal/study/masterclass/test/cdp.mjs';
+const [,, hash, out, y, w, h, theme] = process.argv;
+const b = await launch({width:+(w||1366),height:+(h||900)});
+await b.goto((process.env.PAGE||'file:///Users/vaibhav.jain/tajawal/study/masterclass/dist/index.html')+'#/home');
+if(theme) await b.eval(`localStorage.setItem('aise-masterclass-v1',JSON.stringify({theme:'${theme}'}));location.reload()`), await b.sleep(600);
+await b.eval(`location.hash='${hash}'`); await b.sleep(500);
+await b.eval(`(()=>{document.querySelectorAll('[data-anim]').forEach(n=>{if(!n.dataset.mounted){n.dataset.mounted='1';Anim.mount(n,n.dataset.anim);}})})()`);
+if (y) await b.eval(`(()=>{const e=document.querySelector('${y}');if(e)e.scrollIntoView();else window.scrollTo(0,+'${y}'||0)})()`);
+await b.sleep(400);
+await b.shot(out);
+console.log(JSON.stringify(b.logs));
+await b.close();

@@ -1,0 +1,146 @@
+{
+ "payments": {
+  "namespace": "payments",
+  "total_saving_usd_month": 142.24,
+  "pricing_note": "illustrative unit prices from Policy; replace with your negotiated rates",
+  "items": [
+   {
+    "workload": "api",
+    "container": "app",
+    "status": "change",
+    "saving_usd_month": 73.0,
+    "reasons": [
+     "CPU cut capped at 50% this step (1000m \u2192 500m); re-analyse after a week",
+     "memory cut capped at 50% this step",
+     "CPU p95 302m vs request 1000m; memory max 775Mi vs request 2048Mi"
+    ],
+    "hpa_note": null
+   },
+   {
+    "workload": "batch",
+    "container": "app",
+    "status": "change",
+    "saving_usd_month": 47.34,
+    "reasons": [
+     "CPU spikes \u22653\u00d7 median on 30 days: sized from p99 (630m)",
+     "CPU cut capped at 50% this step (1500m \u2192 750m); re-analyse after a week",
+     "CPU p95 189m vs request 1500m; memory max 455Mi vs request 1024Mi"
+    ],
+    "hpa_note": null
+   },
+   {
+    "workload": "worker",
+    "container": "app",
+    "status": "change",
+    "saving_usd_month": 21.9,
+    "reasons": [
+     "2 OOMKill(s) in 30 days: memory will not be reduced",
+     "CPU cut capped at 50% this step (500m \u2192 250m); re-analyse after a week",
+     "CPU p95 137m vs request 500m; memory max 880Mi vs request 1024Mi"
+    ],
+    "hpa_note": null
+   }
+  ]
+ },
+ "search": {
+  "namespace": "search",
+  "total_saving_usd_month": 20.36,
+  "pricing_note": "illustrative unit prices from Policy; replace with your negotiated rates",
+  "items": [
+   {
+    "workload": "frontend",
+    "container": "app",
+    "status": "change",
+    "saving_usd_month": 20.36,
+    "reasons": [
+     "CPU p95 738m vs request 1000m; memory max 557Mi vs request 1024Mi"
+    ],
+    "hpa_note": "HPA scales on CPU at 70% of request. Median per-pod use 555m is 55% of today's request but would be 62% of 890m. Change the HPA target together with the request, or the HPA will add replicas and cancel the saving."
+   },
+   {
+    "workload": "indexer",
+    "container": "app",
+    "status": "insufficient-data",
+    "saving_usd_month": 0.0,
+    "reasons": [
+     "metric coverage 73% < 90% of the window"
+    ],
+    "hpa_note": null
+   }
+  ]
+ },
+ "checkout": {
+  "namespace": "checkout",
+  "total_saving_usd_month": 98.55,
+  "pricing_note": "illustrative unit prices from Policy; replace with your negotiated rates",
+  "items": [
+   {
+    "workload": "gateway",
+    "container": "app",
+    "status": "change",
+    "saving_usd_month": 98.55,
+    "reasons": [
+     "CPU cut capped at 50% this step (2000m \u2192 1000m); re-analyse after a week",
+     "memory cut capped at 50% this step",
+     "CPU p95 410m vs request 2000m; memory max 671Mi vs request 2048Mi"
+    ],
+    "hpa_note": null
+   }
+  ]
+ },
+ "analyze_payments_api": {
+  "namespace": "payments",
+  "workload": "api",
+  "replicas": 4,
+  "criticality": "standard",
+  "hpa": null,
+  "oom_kills_30d": 0,
+  "containers": [
+   {
+    "container": "app",
+    "current": {
+     "name": "app",
+     "cpu_request_m": 1000,
+     "mem_request_mi": 2048,
+     "cpu_limit_m": null,
+     "mem_limit_mi": 2048
+    },
+    "cpu_millicores": {
+     "avg": 220.1,
+     "p50": 217.9,
+     "p95": 302.2,
+     "p99": 332.3,
+     "max": 343.1,
+     "coverage": 1.0,
+     "spikes": 0,
+     "spike_days": 0
+    },
+    "memory_mib": {
+     "avg": 699.0,
+     "p50": 698.8,
+     "p95": 733.8,
+     "p99": 744.1,
+     "max": 775.0,
+     "coverage": 1.0,
+     "spikes": 0,
+     "spike_days": 0
+    },
+    "recommendation": {
+     "container": "app",
+     "status": "change",
+     "reasons": [
+      "CPU cut capped at 50% this step (1000m \u2192 500m); re-analyse after a week",
+      "memory cut capped at 50% this step",
+      "CPU p95 302m vs request 1000m; memory max 775Mi vs request 2048Mi"
+     ],
+     "cpu_request_m": 500,
+     "mem_request_mi": 1024,
+     "mem_limit_mi": 1024,
+     "monthly_saving_usd": 73.0,
+     "hpa_note": null
+    }
+   }
+  ],
+  "monthly_saving_usd": 73.0
+ }
+}

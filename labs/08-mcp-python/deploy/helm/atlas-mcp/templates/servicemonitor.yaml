@@ -1,0 +1,12 @@
+{{- if .Values.serviceMonitor.enabled }}
+apiVersion: monitoring.coreos.com/v1
+kind: ServiceMonitor
+metadata:
+  name: {{ .Release.Name }}
+  labels: {{- include "atlas-mcp.labels" . | nindent 4 }}
+spec:
+  selector:
+    matchLabels: {{- include "atlas-mcp.selector" . | nindent 6 }}
+  endpoints:
+    - {port: http, path: /metrics, interval: 30s}
+{{- end }}

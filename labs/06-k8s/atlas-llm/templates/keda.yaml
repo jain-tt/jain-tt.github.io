@@ -1,0 +1,19 @@
+{{- if .Values.keda.enabled }}
+# [START keda]
+# Scale on queued requests per replica (vLLM metric vllm:num_requests_waiting), not on CPU.
+apiVersion: keda.sh/v1alpha1
+kind: ScaledObject
+metadata: {name: {{ .Release.Name }}}
+spec:
+  scaleTargetRef: {name: {{ .Release.Name }}}
+  minReplicaCount: {{ .Values.replicas.min }}          # keep a warm floor: cold starts take minutes
+  maxReplicaCount: {{ .Values.replicas.max }}
+  cooldownPeriod: 600                                  # scale in slowly; reloading a model is expensive
+  triggers:
+    - type: prometheus
+      metadata:
+        serverAddress: {{ .Values.keda.prometheusUrl }}
+        query: sum(vllm:num_requests_waiting{service="{{ .Release.Name }}"})
+        threshold: {{ .Values.keda.waitingThreshold | quote }}
+# [END keda]
+{{- end }}

@@ -1,0 +1,46 @@
+# [START values]
+image:
+  repository: ghcr.io/example/atlas-mcp      # your registry; pin by digest in production
+  tag: "0.1.0"
+  digest: ""                                 # e.g. sha256:...; when set, it wins over tag
+  pullPolicy: IfNotPresent
+
+replicaCount: 2                              # >=2 so a node drain or rollout never drops the service
+
+# Public URL clients connect to. Must equal the token audience (RFC 8707 resource).
+publicUrl: https://mcp.example.com/mcp
+hostname: mcp.example.com
+
+oauth:
+  enabled: true
+  issuer: https://login.example.com/realms/atlas
+  jwksUrl: https://login.example.com/realms/atlas/protocol/openid-connect/certs
+
+backend:
+  mode: live                                 # live | sample
+  promUrl: http://mimir-query-frontend.observability:8080/prometheus
+  promTenant: ""                             # Mimir X-Scope-OrgID, optional
+  opencostUrl: http://opencost.opencost:9003
+  timeoutSeconds: 8
+
+resources:
+  requests: {cpu: 100m, memory: 192Mi}
+  limits: {memory: 384Mi}                    # no CPU limit: avoid throttling latency; memory limit protects the node
+
+autoscaling:
+  enabled: true
+  minReplicas: 2
+  maxReplicas: 10
+  targetCPUUtilizationPercentage: 70         # tools are I/O-bound; CPU is a fair proxy for request load here
+
+gateway:
+  enabled: true                              # Gateway API HTTPRoute (TLS terminates at the Gateway)
+  parentRef: {name: public-gateway, namespace: gateway-system, sectionName: https}
+
+networkPolicy:
+  enabled: true
+  gatewayNamespace: gateway-system
+
+serviceMonitor:
+  enabled: true
+# [END values]

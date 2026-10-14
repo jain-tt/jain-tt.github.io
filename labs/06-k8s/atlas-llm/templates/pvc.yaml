@@ -1,0 +1,7 @@
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata: {name: {{ .Release.Name }}-models}
+spec:
+  accessModes: [ReadWriteOnce]           # per-replica cache; use ReadOnlyMany / image volumes to share across replicas
+  storageClassName: {{ .Values.modelCache.storageClass }}
+  resources: {requests: {storage: {{ .Values.modelCache.size }}}}

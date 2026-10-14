@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>AI Systems Engineering Masterclass</title>
+<meta name="description" content="From DevOps to AI Platform Engineering, MLOps, LLMOps, AIOps, GPU Infrastructure and Hyperscale AI Architecture. Offline, single-file interactive textbook.">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0' stop-color='%230f7b6c'/%3E%3Cstop offset='.6' stop-color='%237a3ed1'/%3E%3Cstop offset='1' stop-color='%23c2410c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='32' height='32' rx='8' fill='url(%23g)'/%3E%3Ctext x='16' y='21' font-size='13' text-anchor='middle' fill='white' font-family='Arial' font-weight='700'%3EAI%3C/text%3E%3C/svg%3E">
+<style>
+/*__CSS__*/
+</style>
+</head>
+<body>
+<a class="sr-only" href="#main">Skip to content</a>
+<div id="app">
+  <header id="topbar">
+    <button class="iconbtn" id="sidebar-toggle" aria-label="Open navigation"><svg viewBox="0 0 24 24"><path d="M3 6h18M3 12h18M3 18h18"/></svg></button>
+    <a class="brand" href="#/home" style="color:inherit;text-decoration:none"><span class="logo" aria-hidden="true"></span><span class="name">AI Systems Engineering Masterclass</span><small>DevOps → AI Platform</small></a>
+    <div id="search-wrap" role="search">
+      <svg class="ico" viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-4-4"/></svg>
+      <input id="search" type="search" placeholder="Search lessons, questions, glossary, runbooks…" aria-label="Search the course" autocomplete="off">
+      <span class="hint"><kbd>/</kbd></span>
+      <div id="search-results" role="listbox"></div>
+    </div>
+    <div class="tools">
+      <div id="progress-pill" title="Lessons completed"><div class="bar"><i></i></div><span class="txt">0/0</span></div>
+      <button class="iconbtn" id="btn-motion" title="Toggle reduced motion" aria-label="Toggle reduced motion"><svg viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg></button>
+      <button class="iconbtn" id="btn-theme" title="Theme: auto / light / dark (t)" aria-label="Toggle theme"><svg viewBox="0 0 24 24"><path d="M12 3a9 9 0 1 0 9 9 7 7 0 0 1-9-9z"/></svg></button>
+      <button class="iconbtn" id="btn-help" title="Keyboard shortcuts (?)" aria-label="Keyboard shortcuts"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M9.5 9a2.5 2.5 0 1 1 3.5 2.3c-.6.3-1 .9-1 1.7M12 17h.01"/></svg></button>
+    </div>
+  </header>
+  <nav id="sidebar" aria-label="Course navigation"></nav>
+  <div id="backdrop"></div>
+  <main id="main" tabindex="-1"></main>
+</div>
+<div id="tooltip" role="tooltip"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div class="modal-bg" id="help"><div class="modal" role="dialog" aria-label="Keyboard shortcuts">
+  <h2>Keyboard shortcuts</h2>
+  <div class="kbd-grid">
+    <kbd>/</kbd><span>Focus search (↑ ↓ Enter to pick a result)</span>
+    <kbd>j</kbd> / <kbd>n</kbd><span>Next lesson</span>
+    <kbd>k</kbd> / <kbd>p</kbd><span>Previous lesson</span>
+    <kbd>m</kbd><span>Mark current lesson complete / incomplete</span>
+    <kbd>b</kbd><span>Bookmark current lesson</span>
+    <kbd>t</kbd><span>Cycle theme (auto → light → dark)</span>
+    <kbd>h</kbd><span>Home dashboard</span>
+    <kbd>?</kbd><span>Show this help</span>
+    <kbd>Esc</kbd><span>Close panels</span>
+    <span><b>In an animation</b></span><span>Click it first, then <kbd>Space</kbd> play/pause, <kbd>←</kbd> <kbd>→</kbd> step, <kbd>Home</kbd> restart</span>
+    <span><b>Flashcards</b></span><span><kbd>Space</kbd> flip, <kbd>1</kbd> <kbd>2</kbd> <kbd>3</kbd> rate</span>
+  </div>
+  <p style="color:var(--muted);font-size:.85rem">Everything runs offline in this single file. Progress, notes and bookmarks are stored in your browser only; export them from the Progress dashboard.</p>
+  <button class="btn" onclick="document.getElementById('help').classList.remove('open')">Close</button>
+</div></div>
+<script>
+/*__JS__*/
+</script>
+</body>
+</html>
